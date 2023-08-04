@@ -1,0 +1,9 @@
+[profile.default]
+auto_detect_solc = true
+bytecode_hash = 'none'
+optimizer_runs = 10
+
+[fmt]
+quote_style = 'single'
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
