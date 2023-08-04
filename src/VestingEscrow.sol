@@ -140,15 +140,15 @@ contract VestingEscrow is IVestingEscrow, Clone {
     }
 
     /// @notice Participate in a governance vote using all available tokens on the contract's balance.
-    /// @param params The ABI-encoded data for call. Can be obtained from VotingAdapter.encodeVoteCalldata.
+    /// @param params The ABI-encoded data for call. Can be obtained from VotingAdaptor.encodeVoteCalldata.
     function vote(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
-        return _votingAdapter().functionDelegateCall(abi.encodeWithSignature('vote(bytes)', params));
+        return _votingAdaptor().functionDelegateCall(abi.encodeWithSignature('vote(bytes)', params));
     }
 
     /// @notice Delegate voting power of all available tokens on the contract's balance.
     /// @param params The ABI-encoded data for call.
     function delegate(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
-        return _votingAdapter().functionDelegateCall(abi.encodeWithSignature('delegate(bytes)', params));
+        return _votingAdaptor().functionDelegateCall(abi.encodeWithSignature('delegate(bytes)', params));
     }
 
     /// @notice Disable further flow of tokens and revoke the unvested part to owner.
@@ -212,8 +212,8 @@ contract VestingEscrow is IVestingEscrow, Clone {
     }
 
     /// @dev Returns the factory voting adaptor.
-    function _votingAdapter() internal view returns (address) {
-        return factory().votingAdapter();
+    function _votingAdaptor() internal view returns (address) {
+        return factory().votingAdaptor();
     }
 
     /// @dev Throws if called by any account other than the owner.
@@ -239,7 +239,7 @@ contract VestingEscrow is IVestingEscrow, Clone {
 
     /// @dev Throws if the voting adaptor is not set.
     function _checkVotingAdaptorIsSet() internal view {
-        if (_votingAdapter() == address(0)) {
+        if (_votingAdaptor() == address(0)) {
             revert VOTING_ADAPTOR_NOT_SET();
         }
     }

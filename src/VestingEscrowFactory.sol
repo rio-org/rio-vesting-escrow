@@ -22,12 +22,12 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
     address public immutable token;
 
     /// @notice The adaptor that will be used to delegate and/or vote from the vesting contracts.
-    address public votingAdapter;
+    address public votingAdaptor;
 
     /// @notice The account that will manage the vesting contracts.
     address public manager;
 
-    constructor(address _vestingEscrowImpl, address _token, address _owner, address _manager, address _votingAdapter) {
+    constructor(address _vestingEscrowImpl, address _token, address _owner, address _manager, address _votingAdaptor) {
         if (_vestingEscrowImpl == address(0)) revert INVALID_VESTING_ESCROW_IMPL();
         if (_token == address(0)) revert INVALID_TOKEN();
         if (_owner == address(0)) revert INVALID_OWNER();
@@ -35,7 +35,7 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
         vestingEscrowImpl = _vestingEscrowImpl;
         token = _token;
         manager = _manager;
-        votingAdapter = _votingAdapter;
+        votingAdaptor = _votingAdaptor;
 
         _transferOwnership(_owner);
     }
@@ -99,10 +99,10 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
         }
     }
 
-    /// @notice Change the voting adapter of the vesting contracts.
-    function updateVotingAdapter(address _votingAdapter) external onlyOwner {
-        votingAdapter = _votingAdapter;
-        emit VotingAdapterUpgraded(_votingAdapter);
+    /// @notice Change the voting adaptor of the vesting contracts.
+    function updateVotingAdaptor(address _votingAdaptor) external onlyOwner {
+        votingAdaptor = _votingAdaptor;
+        emit VotingAdaptorUpgraded(_votingAdaptor);
     }
 
     /// @notice Change the manager of the vesting contracts.

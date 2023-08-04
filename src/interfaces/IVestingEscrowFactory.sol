@@ -35,13 +35,13 @@ interface IVestingEscrowFactory {
     /// @notice Emitted when ETH is recovered.
     event ETHRecovered(uint256 amount);
 
-    /// @notice Emitted when the voting adapter is upgraded.
-    event VotingAdapterUpgraded(address votingAdapter);
+    /// @notice Emitted when the voting adaptor is upgraded.
+    event VotingAdaptorUpgraded(address votingAdaptor);
 
     /// @notice Emitted when the manager is changed.
     event ManagerChanged(address manager);
 
-    function votingAdapter() external view returns (address);
+    function votingAdaptor() external view returns (address);
     function owner() external view returns (address);
     function manager() external view returns (address);
 }

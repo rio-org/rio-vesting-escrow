@@ -9,7 +9,7 @@ import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {Address} from '@openzeppelin/contracts/utils/Address.sol';
 import {IVotingAdaptor} from '../interfaces/IVotingAdaptor.sol';
 
-contract OZVotingAdapter is IVotingAdaptor, Ownable {
+contract OZVotingAdaptor is IVotingAdaptor, Ownable {
     using SafeERC20 for IERC20;
     using Address for address payable;
 
