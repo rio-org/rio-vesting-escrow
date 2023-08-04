@@ -50,9 +50,9 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
     function deployVestingContract(
         uint256 amount,
         address recipient,
-        uint256 vestingDuration,
-        uint256 vestingStart,
-        uint256 cliffLength,
+        uint40 vestingDuration,
+        uint40 vestingStart,
+        uint40 cliffLength,
         bool isFullyRevokable
     ) external returns (address) {
         if (vestingDuration == 0) revert INVALID_VESTING_DURATION();
@@ -68,6 +68,7 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
                 vestingStart,
                 vestingStart + vestingDuration,
                 cliffLength,
+                amount,
                 isFullyRevokable
             )
         );
