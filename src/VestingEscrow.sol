@@ -145,6 +145,13 @@ contract VestingEscrow is IVestingEscrow, Clone {
         return _votingAdaptor().functionDelegateCall(abi.encodeWithSignature('vote(bytes)', params));
     }
 
+    // forgefmt: disable-next-item
+    /// @notice Participate in a governance vote with a reason using all available tokens on the contract's balance.
+    /// @param params The ABI-encoded data for call. Can be obtained from VotingAdaptor.encodeVoteWithReasonCalldata.
+    function voteWithReason(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
+        return _votingAdaptor().functionDelegateCall(abi.encodeWithSignature('voteWithReason(bytes)', params));
+    }
+
     /// @notice Delegate voting power of all available tokens on the contract's balance.
     /// @param params The ABI-encoded data for call.
     function delegate(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
