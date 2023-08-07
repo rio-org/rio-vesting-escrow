@@ -51,6 +51,8 @@ contract TestUtil is Test {
             config.manager,
             address(ozVotingAdaptor)
         );
+
+        vm.deal(RANDOM_GUY, 100 ether);
     }
 
     function deployVestingEscrow(VestingEscrowConfig memory config) public {
@@ -71,4 +73,6 @@ contract TestUtil is Test {
         );
         vm.stopPrank();
     }
+
+    receive() external payable {}
 }
