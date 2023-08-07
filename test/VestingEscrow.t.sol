@@ -19,7 +19,7 @@ contract VestingEscrowTest is TestUtil {
                 vestingDuration: 365 days,
                 vestingStart: uint40(block.timestamp),
                 cliffLength: 90 days,
-                isFullyRevokable: false
+                isFullyRevokable: true
             })
         );
     }
@@ -305,17 +305,6 @@ contract VestingEscrowTest is TestUtil {
     }
 
     function testRecoverExtraAfterRevokeAll() public {
-        deployVestingEscrow(
-            VestingEscrowConfig({
-                amount: 1 ether,
-                recipient: address(this),
-                vestingDuration: 365 days,
-                vestingStart: uint40(block.timestamp),
-                cliffLength: 90 days,
-                isFullyRevokable: true
-            })
-        );
-
         uint256 extra = 10 ** 17;
         token.mint(address(deployedVesting), extra);
 
@@ -331,5 +320,142 @@ contract VestingEscrowTest is TestUtil {
         vm.prank(recipient);
         deployedVesting.recoverERC20(address(token), amount);
         assertEq(token.balanceOf(recipient), extra);
+    }
+
+    function testNonOwnerRevokeAllReverts() public {
+        vm.prank(RANDOM_GUY);
+        vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_OWNER.selector, RANDOM_GUY));
+        deployedVesting.revokeAll();
+    }
+
+    function testRevokeAllNonFullyRevocableReverts() public {
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: false
+            })
+        );
+
+        vm.prank(factory.owner());
+        vm.expectRevert(IVestingEscrow.NOT_FULLY_REVOKABLE.selector);
+        deployedVesting.revokeAll();
+    }
+
+    function testRevokeAllTwiceReverts() public {
+        vm.startPrank(factory.owner());
+        deployedVesting.revokeAll();
+
+        vm.expectRevert(IVestingEscrow.ALREADY_FULLY_REVOKED.selector);
+        deployedVesting.revokeAll();
+    }
+
+    function testRevokeAll() public {
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeAll();
+
+        assertEq(deployedVesting.disabledAt(), block.timestamp);
+        assertEq(deployedVesting.unclaimed(), 0);
+        assertEq(deployedVesting.locked(), 0);
+        assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
+    }
+
+    function testRevokeAllAfterEndTime() public {
+        vm.warp(endTime + 1);
+
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeAll();
+
+        assertEq(deployedVesting.disabledAt(), block.timestamp);
+        assertEq(deployedVesting.unclaimed(), 0);
+        assertEq(deployedVesting.locked(), 0);
+        assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
+        assertEq(token.balanceOf(recipient), 0);
+    }
+
+    function testRevokeAllBeforeStartTime() public {
+        vm.warp(startTime - 1);
+
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeAll();
+
+        vm.prank(recipient);
+        deployedVesting.claim(recipient, type(uint256).max);
+
+        assertEq(token.balanceOf(recipient), 0);
+        assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
+    }
+
+    function testClaimAfterRevokeAll() public {
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeAll();
+
+        vm.warp(endTime);
+
+        vm.prank(recipient);
+        deployedVesting.claim(recipient, type(uint256).max);
+
+        assertEq(deployedVesting.unclaimed(), 0);
+        assertEq(token.balanceOf(recipient), 0);
+        assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
+    }
+
+    function testRevokeAllAfterPartialClaim() public {
+        vm.warp(startTime + 10 days);
+
+        vm.prank(recipient);
+        uint256 claimAmount = deployedVesting.claim(recipient, amount);
+
+        vm.warp(endTime);
+
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeAll();
+
+        assertEq(deployedVesting.unclaimed(), 0);
+
+        assertEq(token.balanceOf(recipient), claimAmount);
+        assertEq(token.balanceOf(factory.owner()), amount - claimAmount + ownerBalance);
+    }
+
+    function testRevokeAllAfterRevokeUnvested() public {
+        vm.warp((endTime - startTime) / 2);
+
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeUnvested();
+
+        uint256 expectedAmount = amount * (block.timestamp - startTime) / (endTime - startTime);
+
+        assertEq(token.balanceOf(factory.owner()), amount - expectedAmount + ownerBalance);
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeAll();
+
+        assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
+    }
+
+    function testRevokeAllAfterRevokeUnvestedAndClaim() public {
+        vm.warp(endTime);
+
+        vm.prank(recipient);
+        deployedVesting.claim(recipient, type(uint256).max);
+
+        vm.prank(factory.owner());
+        vm.expectRevert(IVestingEscrow.NOTHING_TO_REVOKE.selector);
+        deployedVesting.revokeAll();
     }
 }
