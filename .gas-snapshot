@@ -1,3 +1,6 @@
+OZVotingAdaptorTest:testEtherSendReverts() (gas: 13817)
+OZVotingAdaptorTest:testRecoverERC20() (gas: 613233)
+OZVotingAdaptorTest:testRecoverEther() (gas: 46928)
 VestingEscrowTest:testClaimAfterCliff() (gas: 91320)
 VestingEscrowTest:testClaimAfterEnd() (gas: 82268)
 VestingEscrowTest:testClaimAfterRevokeAll() (gas: 95416)
