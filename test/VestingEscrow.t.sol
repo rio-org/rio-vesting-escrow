@@ -165,6 +165,109 @@ contract VestingEscrowTest is TestUtil {
         deployedVesting.delegate(params);
     }
 
+    function testDelegateAdaptorNotSetReverts() public {
+        bytes memory params = ozVotingAdaptor.encodeDelegateCallData(RANDOM_GUY);
+
+        vm.prank(factory.owner());
+        factory.updateVotingAdaptor(address(0));
+
+        vm.prank(recipient);
+        vm.expectRevert(IVestingEscrow.VOTING_ADAPTOR_NOT_SET.selector);
+        deployedVesting.delegate(params);
+    }
+
+    function testVote() public {
+        vm.prank(recipient);
+        deployedVesting.delegate(ozVotingAdaptor.encodeDelegateCallData(address(deployedVesting)));
+
+        uint256 proposalId = createProposal();
+        uint256 votingBalance = token.getVotes(address(deployedVesting));
+
+        vm.roll(block.number + 1);
+
+        vm.prank(recipient);
+        deployedVesting.vote(ozVotingAdaptor.encodeVoteCallData(proposalId, uint8(VoteType.For)));
+
+        (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(proposalId);
+
+        assertEq(forVotes, votingBalance);
+        assertEq(againstVotes, 0);
+        assertEq(abstainVotes, 0);
+    }
+
+    function testVoteAfterClaimAll() public {
+        vm.warp(endTime);
+
+        vm.prank(recipient);
+        deployedVesting.delegate(ozVotingAdaptor.encodeDelegateCallData(address(deployedVesting)));
+
+        vm.prank(recipient);
+        deployedVesting.claim(recipient, type(uint256).max);
+
+        assertEq(token.balanceOf(address(deployedVesting)), 0);
+
+        uint256 proposalId = createProposal();
+        vm.roll(block.number + 1);
+
+        vm.prank(recipient);
+        deployedVesting.vote(ozVotingAdaptor.encodeVoteCallData(proposalId, uint8(VoteType.For)));
+
+        (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(proposalId);
+
+        assertEq(forVotes, 0);
+        assertEq(againstVotes, 0);
+        assertEq(abstainVotes, 0);
+    }
+
+    function testVoteAfterUpgrade() public {
+        vm.prank(recipient);
+        deployedVesting.delegate(ozVotingAdaptor.encodeDelegateCallData(address(deployedVesting)));
+
+        address newVotingAdaptor = address(new OZVotingAdaptor(address(governor), address(token), factory.owner()));
+
+        vm.prank(factory.owner());
+        factory.updateVotingAdaptor(newVotingAdaptor);
+
+        uint256 proposalId = createProposal();
+        uint256 votingBalance = token.getVotes(address(deployedVesting));
+
+        vm.roll(block.number + 1);
+
+        vm.prank(recipient);
+        deployedVesting.vote(ozVotingAdaptor.encodeVoteCallData(proposalId, uint8(VoteType.For)));
+
+        (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(proposalId);
+
+        assertEq(forVotes, votingBalance);
+        assertEq(againstVotes, 0);
+        assertEq(abstainVotes, 0);
+    }
+
+    function testVoteAdaptorNotSetReverts() public {
+        uint256 proposalId = createProposal();
+        bytes memory params = ozVotingAdaptor.encodeVoteCallData(proposalId, uint8(VoteType.For));
+
+        vm.prank(factory.owner());
+        factory.updateVotingAdaptor(address(0));
+
+        vm.roll(block.number + 1);
+
+        vm.prank(recipient);
+        vm.expectRevert(IVestingEscrow.VOTING_ADAPTOR_NOT_SET.selector);
+        deployedVesting.vote(params);
+    }
+
+    function testVoteFromNonRecipientReverts() public {
+        uint256 proposalId = createProposal();
+        bytes memory params = ozVotingAdaptor.encodeVoteCallData(proposalId, uint8(VoteType.For));
+
+        vm.roll(block.number + 1);
+
+        vm.prank(RANDOM_GUY);
+        vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_RECIPIENT.selector, RANDOM_GUY));
+        deployedVesting.vote(params);
+    }
+
     function testLockedUnclaimed() public {
         assertEq(deployedVesting.locked(), deployedVesting.totalLocked());
         assertEq(deployedVesting.unclaimed(), 0);

@@ -23,6 +23,12 @@ contract TestUtil is Test {
         bool isFullyRevokable;
     }
 
+    enum VoteType {
+        Against,
+        For,
+        Abstain
+    }
+
     address public constant RANDOM_GUY = address(0x123);
 
     VestingEscrowFactory public factory;
@@ -72,6 +78,19 @@ contract TestUtil is Test {
             )
         );
         vm.stopPrank();
+    }
+
+    function createProposal() public returns (uint256) {
+        address[] memory targets = new address[](1);
+        targets[0] = address(0xdead);
+
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+
+        bytes[] memory calldatas = new bytes[](1);
+        string memory description = 'Test Proposal';
+
+        return governor.propose(targets, values, calldatas, description);
     }
 
     receive() external payable {}
