@@ -5,7 +5,7 @@ import 'forge-std/Test.sol';
 import {TestUtil} from './lib/TestUtil.sol';
 import {ERC20Token} from './lib/ERC20Token.sol';
 
-contract OZVotingAdaptorTest is TestUtil {
+contract VestingEscrowFactoryTest is TestUtil {
     function setUp() public {
         setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2)}));
         deployVestingEscrow(
@@ -22,39 +22,51 @@ contract OZVotingAdaptorTest is TestUtil {
 
     function testRecoverERC20() public {
         ERC20Token token2 = new ERC20Token();
-        address _owner = ozVotingAdaptor.owner();
+        address _owner = factory.owner();
 
-        token2.mint(address(ozVotingAdaptor), amount);
+        token2.mint(address(factory), amount);
 
         uint256 ownerBalance = token2.balanceOf(_owner);
 
         vm.prank(_owner);
-        ozVotingAdaptor.recoverERC20(address(token2), amount);
+        factory.recoverERC20(address(token2), amount);
 
         assertEq(token2.balanceOf(_owner), amount + ownerBalance);
-        assertEq(token2.balanceOf(address(ozVotingAdaptor)), 0);
+        assertEq(token2.balanceOf(address(factory)), 0);
     }
 
     function testRecoverEther() public {
-        vm.deal(address(ozVotingAdaptor), 1 ether);
-        assertEq(address(ozVotingAdaptor).balance, 1 ether);
+        vm.deal(address(factory), 1 ether);
+        assertEq(address(factory).balance, 1 ether);
 
-        address _owner = ozVotingAdaptor.owner();
+        address _owner = factory.owner();
         uint256 ownerBalance = address(_owner).balance;
 
         vm.prank(_owner);
-        ozVotingAdaptor.recoverEther();
+        factory.recoverEther();
 
         assertEq(address(_owner).balance, ownerBalance + 1 ether);
-        assertEq(address(ozVotingAdaptor).balance, 0);
+        assertEq(address(factory).balance, 0);
     }
 
     function testSendEtherReverts() public {
-        vm.deal(address(ozVotingAdaptor), 1 ether);
-        assertEq(address(ozVotingAdaptor).balance, 1 ether);
+        vm.deal(address(factory), 1 ether);
+        assertEq(address(factory).balance, 1 ether);
 
         vm.prank(RANDOM_GUY);
-        (bool success,) = address(ozVotingAdaptor).call{value: 1 ether}(new bytes(0));
+        (bool success,) = address(factory).call{value: 1 ether}(new bytes(0));
         assertEq(success, false);
+    }
+
+    function testUpdateVotingAdaptorFromNonOwnerReverts() public {
+        vm.prank(RANDOM_GUY);
+        vm.expectRevert();
+        factory.updateVotingAdaptor(address(1));
+    }
+
+    function testChangeManagerFromNonOwnerReverts() public {
+        vm.prank(RANDOM_GUY);
+        vm.expectRevert();
+        factory.changeManager(address(1));
     }
 }
