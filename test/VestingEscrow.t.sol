@@ -90,7 +90,7 @@ contract VestingEscrowTest is TestUtil {
         vm.prank(recipient);
 
         uint256 amountClaimed = deployedVesting.claim(recipient, type(uint256).max);
-        uint256 expectedAmount = amount * (block.timestamp - startTime) / (endTime - startTime);
+        uint256 expectedAmount = (amount * (block.timestamp - startTime)) / (endTime - startTime);
 
         assertEq(amountClaimed, expectedAmount);
         assertEq(token.balanceOf(recipient), expectedAmount);
@@ -105,11 +105,11 @@ contract VestingEscrowTest is TestUtil {
     }
 
     function testClaimPartial() public {
-        vm.warp((endTime - startTime) / 2);
+        vm.warp(block.timestamp + ((endTime - startTime) / 2));
         vm.prank(recipient);
 
         deployedVesting.claim(recipient, type(uint256).max);
-        uint256 expectedAmount = amount * (block.timestamp - startTime) / (endTime - startTime);
+        uint256 expectedAmount = (amount * (block.timestamp - startTime)) / (endTime - startTime);
 
         assertEq(token.balanceOf(recipient), expectedAmount);
         assertEq(deployedVesting.totalClaimed(), expectedAmount);
@@ -284,14 +284,14 @@ contract VestingEscrowTest is TestUtil {
         uint256 extra = 10 ** 17;
         token.mint(address(deployedVesting), extra);
 
-        vm.warp((endTime - startTime) / 2);
+        vm.warp(block.timestamp + ((endTime - startTime) / 2));
 
         uint256 ownerBalance = token.balanceOf(factory.owner());
 
         vm.prank(factory.owner());
         deployedVesting.revokeUnvested();
 
-        uint256 vested = amount * (block.timestamp - startTime) / (endTime - startTime);
+        uint256 vested = (amount * (block.timestamp - startTime)) / (endTime - startTime);
         uint256 expectedAmount = amount - vested;
 
         assertEq(token.balanceOf(factory.owner()), expectedAmount + ownerBalance);
@@ -308,7 +308,7 @@ contract VestingEscrowTest is TestUtil {
         uint256 extra = 10 ** 17;
         token.mint(address(deployedVesting), extra);
 
-        vm.warp((endTime - startTime) / 2);
+        vm.warp(block.timestamp + ((endTime - startTime) / 2));
 
         uint256 ownerBalance = token.balanceOf(factory.owner());
 
@@ -415,7 +415,7 @@ contract VestingEscrowTest is TestUtil {
         vm.warp(startTime + 10 days);
 
         vm.prank(recipient);
-        uint256 claimAmount = deployedVesting.claim(recipient, amount);
+        uint256 claimAmount = deployedVesting.claim(recipient, type(uint256).max);
 
         vm.warp(endTime);
 
@@ -431,14 +431,14 @@ contract VestingEscrowTest is TestUtil {
     }
 
     function testRevokeAllAfterRevokeUnvested() public {
-        vm.warp((endTime - startTime) / 2);
+        vm.warp(block.timestamp + ((endTime - startTime) / 2));
 
         uint256 ownerBalance = token.balanceOf(factory.owner());
 
         vm.prank(factory.owner());
         deployedVesting.revokeUnvested();
 
-        uint256 expectedAmount = amount * (block.timestamp - startTime) / (endTime - startTime);
+        uint256 expectedAmount = (amount * (block.timestamp - startTime)) / (endTime - startTime);
 
         assertEq(token.balanceOf(factory.owner()), amount - expectedAmount + ownerBalance);
 
@@ -457,5 +457,101 @@ contract VestingEscrowTest is TestUtil {
         vm.prank(factory.owner());
         vm.expectRevert(IVestingEscrow.NOTHING_TO_REVOKE.selector);
         deployedVesting.revokeAll();
+    }
+
+    function testRevokeUnvestedNonOwnerOrManagerReverts() public {
+        vm.prank(RANDOM_GUY);
+        vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_OWNER_OR_MANAGER.selector, RANDOM_GUY));
+        deployedVesting.revokeUnvested();
+    }
+
+    function testDisabledAtIsInitiallyEndTime() public {
+        assertEq(deployedVesting.disabledAt(), endTime);
+    }
+
+    function testRevokeUnvested() public {
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeUnvested();
+
+        assertEq(deployedVesting.disabledAt(), block.timestamp);
+        assertEq(deployedVesting.locked(), 0);
+        assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
+    }
+
+    function testRevokeUnvestedFromManager() public {
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.manager());
+        deployedVesting.revokeUnvested();
+
+        assertEq(deployedVesting.disabledAt(), block.timestamp);
+        assertEq(deployedVesting.locked(), 0);
+        assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
+    }
+
+    function testRevokeUnvestedAfterEndTime() public {
+        vm.warp(endTime + 1);
+
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        vm.expectRevert(IVestingEscrow.NOTHING_TO_REVOKE.selector);
+        deployedVesting.revokeUnvested();
+
+        vm.prank(recipient);
+        deployedVesting.claim(recipient, type(uint256).max);
+
+        assertEq(token.balanceOf(recipient), amount);
+        assertEq(token.balanceOf(factory.owner()), ownerBalance);
+    }
+
+    function testRevokeUnvestedBeforeStartTime() public {
+        vm.warp(startTime - 1);
+
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeUnvested();
+
+        vm.warp(endTime);
+
+        vm.prank(recipient);
+        deployedVesting.claim(recipient, type(uint256).max);
+
+        assertEq(token.balanceOf(recipient), 0);
+        assertEq(token.balanceOf(factory.owner()), deployedVesting.totalLocked() + ownerBalance);
+    }
+
+    function testRevokeUnvestedPartiallyUnclaimed() public {
+        vm.warp(startTime + 100 days);
+
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeUnvested();
+
+        vm.prank(recipient);
+        deployedVesting.claim(recipient, amount);
+
+        uint256 expectedAmount = (amount * (block.timestamp - startTime)) / (endTime - startTime);
+
+        assertEq(token.balanceOf(recipient), expectedAmount);
+        assertEq(token.balanceOf(factory.owner()), deployedVesting.totalLocked() - expectedAmount + ownerBalance);
+    }
+
+    function testRevokeUnvestedPartiallyClaimed() public {
+        vm.warp(startTime + 100 days);
+
+        vm.prank(recipient);
+        uint256 claimAmount = deployedVesting.claim(recipient, type(uint256).max);
+        uint256 ownerBalance = token.balanceOf(factory.owner());
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeUnvested();
+
+        assertEq(token.balanceOf(recipient), claimAmount);
+        assertEq(token.balanceOf(factory.owner()), amount - claimAmount + ownerBalance);
     }
 }
