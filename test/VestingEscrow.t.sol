@@ -3,11 +3,14 @@ pragma solidity 0.8.21;
 
 import 'forge-std/Test.sol';
 import {TestUtil} from './lib/TestUtil.sol';
+import {IVestingEscrow} from '../src/interfaces/IVestingEscrow.sol';
+import {OZVotingAdaptor} from '../src/adaptors/OZVotingAdaptor.sol';
 
 contract VestingEscrowTest is TestUtil {
     function setUp() public {
-        deployAndConfigure(
-            Config({
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2)}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
                 amount: 1e18,
                 recipient: address(this),
                 vestingDuration: 365 days,
@@ -120,5 +123,34 @@ contract VestingEscrowTest is TestUtil {
         }
 
         assertEq(token.balanceOf(recipient), recipientBalance);
+    }
+
+    function testDelegate() public {
+        assertEq(token.delegates(address(deployedVesting)), address(0));
+
+        vm.prank(recipient);
+        deployedVesting.delegate(ozVotingAdaptor.encodeDelegateCallData(RANDOM_GUY));
+        assertEq(token.delegates(address(deployedVesting)), RANDOM_GUY);
+    }
+
+    function testDelegateAfterUpgrade() public {
+        assertEq(token.delegates(address(deployedVesting)), address(0));
+
+        address newVotingAdaptor = address(new OZVotingAdaptor(address(governor), address(token), factory.owner()));
+
+        vm.prank(factory.owner());
+        factory.updateVotingAdaptor(newVotingAdaptor);
+
+        vm.prank(recipient);
+        deployedVesting.delegate(ozVotingAdaptor.encodeDelegateCallData(RANDOM_GUY));
+        assertEq(token.delegates(address(deployedVesting)), RANDOM_GUY);
+    }
+
+    function testDelegateFromNonRecipientReverts() public {
+        bytes memory params = ozVotingAdaptor.encodeDelegateCallData(RANDOM_GUY);
+
+        vm.prank(RANDOM_GUY);
+        vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_RECIPIENT.selector, RANDOM_GUY));
+        deployedVesting.delegate(params);
     }
 }

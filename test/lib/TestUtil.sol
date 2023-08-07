@@ -5,10 +5,16 @@ import 'forge-std/Test.sol';
 import {OZVotingAdaptor} from '../../src/adaptors/OZVotingAdaptor.sol';
 import {VestingEscrowFactory} from '../../src/VestingEscrowFactory.sol';
 import {VestingEscrow} from '../../src/VestingEscrow.sol';
+import {GovernorVotesMock} from './GovernorVotesMock.sol';
 import {OZVotingToken} from './OZVotingToken.sol';
 
 contract TestUtil is Test {
-    struct Config {
+    struct ProtocolConfig {
+        address owner;
+        address manager;
+    }
+
+    struct VestingEscrowConfig {
         uint256 amount;
         address recipient;
         uint40 vestingDuration;
@@ -20,9 +26,12 @@ contract TestUtil is Test {
     address public constant RANDOM_GUY = address(0x123);
 
     VestingEscrowFactory public factory;
-    VestingEscrow public deployedVesting;
     OZVotingAdaptor public ozVotingAdaptor;
+
+    GovernorVotesMock public governor;
     OZVotingToken public token;
+
+    VestingEscrow public deployedVesting;
 
     uint256 public amount;
     address public recipient;
@@ -31,23 +40,26 @@ contract TestUtil is Test {
     uint40 public cliffLength;
     bool public isFullyRevokable;
 
-    function deployAndConfigure(Config memory config) public {
+    function setUpProtocol(ProtocolConfig memory config) public {
+        token = new OZVotingToken();
+        governor = new GovernorVotesMock(address(token));
+        ozVotingAdaptor = new OZVotingAdaptor(address(governor), address(token), config.owner);
+        factory = new VestingEscrowFactory(
+            address(new VestingEscrow()),
+            address(token),
+            config.owner,
+            config.manager,
+            address(ozVotingAdaptor)
+        );
+    }
+
+    function deployVestingEscrow(VestingEscrowConfig memory config) public {
         amount = config.amount;
         recipient = config.recipient;
         startTime = config.vestingStart;
         endTime = config.vestingStart + config.vestingDuration;
         cliffLength = config.cliffLength;
         isFullyRevokable = config.isFullyRevokable;
-
-        token = new OZVotingToken();
-        ozVotingAdaptor = new OZVotingAdaptor(address(1), address(1), address(1));
-        factory = new VestingEscrowFactory(
-            address(new VestingEscrow()),
-            address(token),
-            address(1),
-            address(1),
-            address(ozVotingAdaptor)
-        );
 
         vm.startPrank(recipient);
         token.mint(recipient, amount);
