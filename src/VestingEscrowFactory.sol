@@ -7,8 +7,8 @@ import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {Ownable2Step} from '@openzeppelin/contracts/access/Ownable2Step.sol';
 import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import {IVestingEscrowFactory} from './interfaces/IVestingEscrowFactory.sol';
-import {IVestingEscrow} from './interfaces/IVestingEscrow.sol';
+import {IVestingEscrowFactory} from 'src/interfaces/IVestingEscrowFactory.sol';
+import {IVestingEscrow} from 'src/interfaces/IVestingEscrow.sol';
 
 contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
     using LibClone for address;
@@ -47,37 +47,31 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
     /// @param vestingStart The start of the vesting contract.
     /// @param cliffLength The cliff length of the vesting contract.
     /// @param isFullyRevokable Whether the vesting contract is fully revokable.
+    /// @param initialDelegateParams The optional initial delegate information (skipped if empty bytes).
     function deployVestingContract(
         uint256 amount,
         address recipient,
         uint40 vestingDuration,
         uint40 vestingStart,
         uint40 cliffLength,
-        bool isFullyRevokable
-    ) external returns (address) {
+        bool isFullyRevokable,
+        bytes calldata initialDelegateParams
+    ) external returns (address escrow) {
         if (vestingDuration == 0) revert INVALID_VESTING_DURATION();
         if (cliffLength > vestingDuration) revert INVALID_VESTING_CLIFF();
         if (recipient == address(0)) revert INVALID_RECIPIENT();
         if (amount == 0) revert INVALID_AMOUNT();
 
-        address escrow = vestingEscrowImpl.clone(
+        escrow = vestingEscrowImpl.clone(
             abi.encodePacked(
-                address(this),
-                token,
-                recipient,
-                vestingStart,
-                vestingStart + vestingDuration,
-                cliffLength,
-                amount
+                address(this), token, recipient, vestingStart, vestingStart + vestingDuration, cliffLength, amount
             )
         );
 
         IERC20(token).safeTransferFrom(msg.sender, escrow, amount);
-        IVestingEscrow(escrow).initialize(isFullyRevokable);
+        IVestingEscrow(escrow).initialize(isFullyRevokable, initialDelegateParams);
 
         emit VestingEscrowCreated(msg.sender, recipient, escrow);
-
-        return escrow;
     }
 
     /// @notice Recover any ERC20 to the owner.

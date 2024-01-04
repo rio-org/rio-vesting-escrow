@@ -7,7 +7,7 @@ import {IVotes} from '@openzeppelin/contracts/governance/utils/IVotes.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {Address} from '@openzeppelin/contracts/utils/Address.sol';
-import {IVotingAdaptor} from '../interfaces/IVotingAdaptor.sol';
+import {IVotingAdaptor} from 'src/interfaces/IVotingAdaptor.sol';
 
 contract OZVotingAdaptor is IVotingAdaptor, Ownable {
     using SafeERC20 for IERC20;
@@ -30,11 +30,32 @@ contract OZVotingAdaptor is IVotingAdaptor, Ownable {
         _transferOwnership(_owner);
     }
 
+    /// @notice Encode OZ delegate calldata for use in VestingEscrow.
+    /// @param delegatee The delegatee address.
+    function encodeDelegateCallData(address delegatee) external pure returns (bytes memory) {
+        return abi.encode(delegatee);
+    }
+
     /// @notice Encode OZ vote calldata for use in VestingEscrow.
     /// @param proposalId The proposal id.
     /// @param support The support value.
     function encodeVoteCallData(uint256 proposalId, uint8 support) external pure returns (bytes memory) {
         return abi.encode(proposalId, support);
+    }
+
+    // forgefmt: disable-next-item
+    /// @notice Encode OZ vote with reason calldata for use in VestingEscrow.
+    /// @param proposalId The proposal id.
+    /// @param support The support value.
+    /// @param reason The vote reason.
+    function encodeVoteWithReasonCallData(uint256 proposalId, uint8 support, string calldata reason) external pure returns (bytes memory) {
+        return abi.encode(proposalId, support, reason);
+    }
+
+    /// @notice Delegate votes.
+    /// @param params The ABI-encoded delegatee address.
+    function delegate(bytes calldata params) external {
+        IVotes(votingToken).delegate(abi.decode(params, (address)));
     }
 
     /// @notice Vote on an OZ proposal.
@@ -44,35 +65,11 @@ contract OZVotingAdaptor is IVotingAdaptor, Ownable {
         IGovernor(governor).castVote(proposalId, support);
     }
 
-    /// @notice Encode OZ vote with reason calldata for use in VestingEscrow.
-    /// @param proposalId The proposal id.
-    /// @param support The support value.
-    /// @param reason The vote reason.
-    function encodeVoteWithReasonCallData(uint256 proposalId, uint8 support, string calldata reason)
-        external
-        pure
-        returns (bytes memory)
-    {
-        return abi.encode(proposalId, support, reason);
-    }
-
     /// @notice Vote on a proposal with a reason.
     /// @param params The ABI-encoded proposal id, support value, and reason.
     function voteWithReason(bytes calldata params) external {
         (uint256 proposalId, uint8 support, string memory reason) = abi.decode(params, (uint256, uint8, string));
         IGovernor(governor).castVoteWithReason(proposalId, support, reason);
-    }
-
-    /// @notice Encode OZ delegate calldata for use in VestingEscrow.
-    /// @param delegatee The delegatee address.
-    function encodeDelegateCallData(address delegatee) external pure returns (bytes memory) {
-        return abi.encode(delegatee);
-    }
-
-    /// @notice Delegate votes.
-    /// @param params The ABI-encoded delegatee address.
-    function delegate(bytes calldata params) external {
-        IVotes(votingToken).delegate(abi.decode(params, (address)));
     }
 
     /// @notice Recover any ERC20 to the owner.
