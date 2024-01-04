@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
-import 'forge-std/Test.sol';
 import {TestUtil} from './lib/TestUtil.sol';
-import {OZVotingToken} from './lib/OZVotingToken.sol';
 import {IVestingEscrow} from '../src/interfaces/IVestingEscrow.sol';
 import {OZVotingAdaptor} from '../src/adaptors/OZVotingAdaptor.sol';
 import {ERC20NoReturnToken} from './lib/ERC20NoReturnToken.sol';

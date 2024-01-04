@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import {Clone} from '@solady/utils/Clone.sol';
 import {Math} from '@openzeppelin/contracts/utils/math/Math.sol';

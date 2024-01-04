@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 interface IVotingAdaptor {
     /// @notice Thrown when the owner is the zero address.
