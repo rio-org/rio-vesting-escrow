@@ -68,13 +68,12 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
                 vestingStart,
                 vestingStart + vestingDuration,
                 cliffLength,
-                amount,
-                isFullyRevokable
+                amount
             )
         );
 
         IERC20(token).safeTransferFrom(msg.sender, escrow, amount);
-        IVestingEscrow(escrow).initialize();
+        IVestingEscrow(escrow).initialize(isFullyRevokable);
 
         emit VestingEscrowCreated(msg.sender, recipient, escrow);
 

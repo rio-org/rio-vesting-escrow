@@ -29,7 +29,7 @@ contract VestingEscrowTest is TestUtil {
 
         vm.prank(_owner);
         vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_FACTORY.selector, _owner));
-        deployedVesting.initialize();
+        deployedVesting.initialize(true);
     }
 
     function testClaimNonRecipientReverts() public {
@@ -546,6 +546,15 @@ contract VestingEscrowTest is TestUtil {
         deployedVesting.revokeAll();
     }
 
+    function testRevokeAllAfterPermanentlyDisablingFullRevocationReverts() public {
+        vm.prank(factory.owner());
+        deployedVesting.permanentlyDisableFullRevocation();
+
+        vm.prank(factory.owner());
+        vm.expectRevert(IVestingEscrow.NOT_FULLY_REVOKABLE.selector);
+        deployedVesting.revokeAll();
+    }
+
     function testRevokeAllTwiceReverts() public {
         vm.startPrank(factory.owner());
         deployedVesting.revokeAll();
@@ -664,6 +673,12 @@ contract VestingEscrowTest is TestUtil {
         vm.prank(RANDOM_GUY);
         vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_OWNER_OR_MANAGER.selector, RANDOM_GUY));
         deployedVesting.revokeUnvested();
+    }
+
+    function testNonOwnerPermanentlyDisableFullRevocationReverts() public {
+        vm.prank(RANDOM_GUY);
+        vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_OWNER.selector, RANDOM_GUY));
+        deployedVesting.permanentlyDisableFullRevocation();
     }
 
     function testDisabledAtIsInitiallyEndTime() public {
