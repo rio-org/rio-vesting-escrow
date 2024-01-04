@@ -5,6 +5,8 @@ A modified version of [Lido Vesting Escrow](https://github.com/lidofinance/lido-
 - Conversion to Solidity v0.8
 - Uses minimal proxies with immutable args
 - Adds support for OpenZeppelin governance contracts
+- Allows full revocation to be disabled after escrow deployment
+- Allows the escrow deployer to provide initial delegate information
 
 ## Contract Development
 
