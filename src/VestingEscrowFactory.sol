@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import {LibClone} from '@solady/utils/LibClone.sol';
 import {Address} from '@openzeppelin/contracts/utils/Address.sol';
@@ -68,13 +68,12 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
                 vestingStart,
                 vestingStart + vestingDuration,
                 cliffLength,
-                amount,
-                isFullyRevokable
+                amount
             )
         );
 
         IERC20(token).safeTransferFrom(msg.sender, escrow, amount);
-        IVestingEscrow(escrow).initialize();
+        IVestingEscrow(escrow).initialize(isFullyRevokable);
 
         emit VestingEscrowCreated(msg.sender, recipient, escrow);
 

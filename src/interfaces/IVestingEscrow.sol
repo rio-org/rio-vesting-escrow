@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 interface IVestingEscrow {
     /// @notice Thrown when the caller is not the owner.
@@ -50,6 +50,9 @@ interface IVestingEscrow {
     /// @notice Emitted when all tokens are revoked.
     event VestingFullyRevoked(address indexed recoverer, uint256 revoked);
 
+    /// @notice Emitted when full revocation power is permanently disabled.
+    event FullRevocationPermanentlyDisabled(address indexed owner);
+
     /// @notice Emitted when ERC20 tokens are recovered.
     event ERC20Recovered(address token, uint256 amount);
 
@@ -57,5 +60,6 @@ interface IVestingEscrow {
     event ETHRecovered(uint256 amount);
 
     /// @notice Initializes the contract.
-    function initialize() external;
+    /// @param isFullyRevokable Whether the tokens are fully revokable.
+    function initialize(bool isFullyRevokable) external;
 }

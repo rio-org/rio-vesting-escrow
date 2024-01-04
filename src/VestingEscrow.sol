@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import {Clone} from '@solady/utils/Clone.sol';
 import {Math} from '@openzeppelin/contracts/utils/math/Math.sol';
@@ -49,16 +49,14 @@ contract VestingEscrow is IVestingEscrow, Clone {
         return _getArgUint256(75);
     }
 
-    /// @notice Whether the tokens are fully revokable.
-    function isFullyRevokable() public pure returns (bool) {
-        return _getArgBool(107);
-    }
-
     /// @notice The total amount of tokens that have been claimed.
     uint256 public totalClaimed;
 
     /// @notice The vesting end time or the time at which vesting was revoked.
     uint40 public disabledAt;
+
+    /// @notice Whether vesting is fully revokable.
+    bool public isFullyRevokable;
 
     /// @notice Whether vesting has been fully revoked.
     bool public isFullyRevoked;
@@ -88,7 +86,8 @@ contract VestingEscrow is IVestingEscrow, Clone {
     }
 
     /// @notice Initializes the contract.
-    function initialize() external {
+    /// @param _isFullyRevokable Whether the tokens are fully revokable.
+    function initialize(bool _isFullyRevokable) external {
         address _factory = address(factory());
         uint256 _totalLocked = totalLocked();
         uint40 _endTime = endTime();
@@ -98,6 +97,7 @@ contract VestingEscrow is IVestingEscrow, Clone {
         if (_token.balanceOf(address(this)) < _totalLocked) revert INSUFFICIENT_BALANCE();
 
         disabledAt = _endTime; // Set to maximum time
+        isFullyRevokable = _isFullyRevokable;
 
         emit VestingEscrowInitialized(
             _factory,
@@ -107,7 +107,7 @@ contract VestingEscrow is IVestingEscrow, Clone {
             startTime(),
             _endTime,
             cliffLength(),
-            isFullyRevokable()
+            _isFullyRevokable
         );
     }
 
@@ -171,7 +171,7 @@ contract VestingEscrow is IVestingEscrow, Clone {
 
     /// @notice Disable further flow of tokens and revoke all tokens to owner.
     function revokeAll() external onlyOwner {
-        if (!isFullyRevokable()) revert NOT_FULLY_REVOKABLE();
+        if (!isFullyRevokable) revert NOT_FULLY_REVOKABLE();
         if (isFullyRevoked) revert ALREADY_FULLY_REVOKED();
 
         uint256 revokable = locked() + unclaimed();
@@ -182,6 +182,14 @@ contract VestingEscrow is IVestingEscrow, Clone {
 
         token().safeTransfer(_owner(), revokable);
         emit VestingFullyRevoked(msg.sender, revokable);
+    }
+
+    /// @notice Permanently disable full token revocation.
+    function permanentlyDisableFullRevocation() external onlyOwner {
+        if (!isFullyRevokable) revert NOT_FULLY_REVOKABLE();
+
+        isFullyRevokable = false;
+        emit FullRevocationPermanentlyDisabled(msg.sender);
     }
 
     /// @notice Recover any ERC20 token to the recipient.
