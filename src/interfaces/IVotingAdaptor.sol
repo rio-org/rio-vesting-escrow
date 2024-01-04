@@ -16,4 +16,16 @@ interface IVotingAdaptor {
 
     /// @notice Emitted when ETH is recovered.
     event ETHRecovered(uint256 amount);
+
+    /// @notice Delegate votes.
+    /// @param params The ABI-encoded delegate params.
+    function delegate(bytes calldata params) external;
+
+    /// @notice Vote on a proposal.
+    /// @param params The ABI-encoded vote params.
+    function vote(bytes calldata params) external;
+
+    /// @notice Vote on a proposal with a reason.
+    /// @param params The ABI-encoded vote with reason params.
+    function voteWithReason(bytes calldata params) external;
 }

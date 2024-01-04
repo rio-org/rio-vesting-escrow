@@ -61,5 +61,6 @@ interface IVestingEscrow {
 
     /// @notice Initializes the contract.
     /// @param isFullyRevokable Whether the tokens are fully revokable.
-    function initialize(bool isFullyRevokable) external;
+    /// @param initialDelegateParams The optional initial delegate information (skipped if empty bytes).
+    function initialize(bool isFullyRevokable, bytes calldata initialDelegateParams) external;
 }

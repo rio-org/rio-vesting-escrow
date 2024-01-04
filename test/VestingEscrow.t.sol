@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.23;
 
-import {TestUtil} from './lib/TestUtil.sol';
-import {IVestingEscrow} from '../src/interfaces/IVestingEscrow.sol';
-import {OZVotingAdaptor} from '../src/adaptors/OZVotingAdaptor.sol';
-import {ERC20NoReturnToken} from './lib/ERC20NoReturnToken.sol';
-import {ERC20Token} from './lib/ERC20Token.sol';
+import {TestUtil} from 'test/lib/TestUtil.sol';
+import {IVestingEscrow} from 'src/interfaces/IVestingEscrow.sol';
+import {OZVotingAdaptor} from 'src/adaptors/OZVotingAdaptor.sol';
+import {ERC20NoReturnToken} from 'test/lib/ERC20NoReturnToken.sol';
+import {ERC20Token} from 'test/lib/ERC20Token.sol';
 
 contract VestingEscrowTest is TestUtil {
     function setUp() public {
@@ -17,7 +17,8 @@ contract VestingEscrowTest is TestUtil {
                 vestingDuration: 365 days,
                 vestingStart: uint40(block.timestamp),
                 cliffLength: 90 days,
-                isFullyRevokable: true
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
             })
         );
     }
@@ -27,7 +28,7 @@ contract VestingEscrowTest is TestUtil {
 
         vm.prank(_owner);
         vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_FACTORY.selector, _owner));
-        deployedVesting.initialize(true);
+        deployedVesting.initialize(true, new bytes(0));
     }
 
     function testClaimNonRecipientReverts() public {
@@ -132,6 +133,38 @@ contract VestingEscrowTest is TestUtil {
         }
 
         assertEq(token.balanceOf(recipient), recipientBalance);
+    }
+
+    function testInitialDelegate() public {
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: false,
+                initialDelegateParams: ozVotingAdaptor.encodeDelegateCallData(RANDOM_GUY)
+            })
+        );
+
+        assertEq(token.delegates(address(deployedVesting)), RANDOM_GUY);
+    }
+
+    function testInitialDelegateEmptySkipsDelegation() public {
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: false,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        assertEq(token.delegates(address(deployedVesting)), address(0));
     }
 
     function testDelegate() public {
@@ -535,7 +568,8 @@ contract VestingEscrowTest is TestUtil {
                 vestingDuration: 365 days,
                 vestingStart: uint40(block.timestamp),
                 cliffLength: 90 days,
-                isFullyRevokable: false
+                isFullyRevokable: false,
+                initialDelegateParams: new bytes(0)
             })
         );
 

@@ -6,8 +6,9 @@ import {Math} from '@openzeppelin/contracts/utils/math/Math.sol';
 import {Address} from '@openzeppelin/contracts/utils/Address.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import {IVestingEscrowFactory} from './interfaces/IVestingEscrowFactory.sol';
-import {IVestingEscrow} from './interfaces/IVestingEscrow.sol';
+import {IVestingEscrowFactory} from 'src/interfaces/IVestingEscrowFactory.sol';
+import {IVestingEscrow} from 'src/interfaces/IVestingEscrow.sol';
+import {IVotingAdaptor} from 'src/interfaces/IVotingAdaptor.sol';
 
 contract VestingEscrow is IVestingEscrow, Clone {
     using SafeERC20 for IERC20;
@@ -87,7 +88,8 @@ contract VestingEscrow is IVestingEscrow, Clone {
 
     /// @notice Initializes the contract.
     /// @param _isFullyRevokable Whether the tokens are fully revokable.
-    function initialize(bool _isFullyRevokable) external {
+    /// @param _initialDelegateParams The optional initial delegate information (skipped if empty bytes).
+    function initialize(bool _isFullyRevokable, bytes calldata _initialDelegateParams) external {
         address _factory = address(factory());
         uint256 _totalLocked = totalLocked();
         uint40 _endTime = endTime();
@@ -98,6 +100,8 @@ contract VestingEscrow is IVestingEscrow, Clone {
 
         disabledAt = _endTime; // Set to maximum time
         isFullyRevokable = _isFullyRevokable;
+
+        if (_initialDelegateParams.length != 0) _delegate(_initialDelegateParams);
 
         emit VestingEscrowInitialized(
             _factory,
@@ -139,23 +143,23 @@ contract VestingEscrow is IVestingEscrow, Clone {
         return claimable;
     }
 
+    /// @notice Delegate voting power of all available tokens.
+    /// @param params The ABI-encoded delegate params.
+    function delegate(bytes calldata params) external onlyRecipient returns (bytes memory) {
+        return _delegate(params);
+    }
+
     /// @notice Participate in a governance vote using all available tokens on the contract's balance.
     /// @param params The ABI-encoded data for call. Can be obtained from VotingAdaptor.encodeVoteCalldata.
     function vote(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
-        return _votingAdaptor().functionDelegateCall(abi.encodeWithSignature('vote(bytes)', params));
+        return _votingAdaptor().functionDelegateCall(abi.encodeCall(IVotingAdaptor.vote, (params)));
     }
 
     // forgefmt: disable-next-item
     /// @notice Participate in a governance vote with a reason using all available tokens on the contract's balance.
     /// @param params The ABI-encoded data for call. Can be obtained from VotingAdaptor.encodeVoteWithReasonCalldata.
     function voteWithReason(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
-        return _votingAdaptor().functionDelegateCall(abi.encodeWithSignature('voteWithReason(bytes)', params));
-    }
-
-    /// @notice Delegate voting power of all available tokens on the contract's balance.
-    /// @param params The ABI-encoded data for call.
-    function delegate(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
-        return _votingAdaptor().functionDelegateCall(abi.encodeWithSignature('delegate(bytes)', params));
+        return _votingAdaptor().functionDelegateCall(abi.encodeCall(IVotingAdaptor.voteWithReason, (params)));
     }
 
     /// @notice Disable further flow of tokens and revoke the unvested part to owner.
@@ -257,6 +261,12 @@ contract VestingEscrow is IVestingEscrow, Clone {
         if (_votingAdaptor() == address(0)) {
             revert VOTING_ADAPTOR_NOT_SET();
         }
+    }
+
+    /// @notice Delegate voting power of all available tokens.
+    /// @param params The ABI-encoded delegate params.
+    function _delegate(bytes calldata params) internal whenVotingAdaptorIsSet returns (bytes memory) {
+        return _votingAdaptor().functionDelegateCall(abi.encodeCall(IVotingAdaptor.delegate, params));
     }
 
     /// @dev Returns the vested token amount at a specific time.

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.23;
 
-import {TestUtil} from './lib/TestUtil.sol';
-import {ERC20Token} from './lib/ERC20Token.sol';
+import {TestUtil} from 'test/lib/TestUtil.sol';
+import {ERC20Token} from 'test/lib/ERC20Token.sol';
 
 contract OZVotingAdaptorTest is TestUtil {
     function setUp() public {
@@ -14,7 +14,8 @@ contract OZVotingAdaptorTest is TestUtil {
                 vestingDuration: 365 days,
                 vestingStart: uint40(block.timestamp),
                 cliffLength: 90 days,
-                isFullyRevokable: true
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
             })
         );
     }

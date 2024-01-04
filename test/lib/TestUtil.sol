@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.23;
 
-import 'forge-std/Test.sol';
-import {OZVotingAdaptor} from '../../src/adaptors/OZVotingAdaptor.sol';
-import {VestingEscrowFactory} from '../../src/VestingEscrowFactory.sol';
-import {VestingEscrow} from '../../src/VestingEscrow.sol';
-import {GovernorVotesMock} from './GovernorVotesMock.sol';
-import {OZVotingToken} from './OZVotingToken.sol';
+import {Test} from 'forge-std/Test.sol';
+import {OZVotingAdaptor} from 'src/adaptors/OZVotingAdaptor.sol';
+import {VestingEscrowFactory} from 'src/VestingEscrowFactory.sol';
+import {GovernorVotesMock} from 'test/lib/GovernorVotesMock.sol';
+import {OZVotingToken} from 'test/lib/OZVotingToken.sol';
+import {VestingEscrow} from 'src/VestingEscrow.sol';
 
 contract TestUtil is Test {
     struct ProtocolConfig {
@@ -21,6 +21,7 @@ contract TestUtil is Test {
         uint40 vestingStart;
         uint40 cliffLength;
         bool isFullyRevokable;
+        bytes initialDelegateParams;
     }
 
     enum VoteType {
@@ -45,17 +46,14 @@ contract TestUtil is Test {
     uint40 public endTime;
     uint40 public cliffLength;
     bool public isFullyRevokable;
+    bytes public initialDelegateParams;
 
     function setUpProtocol(ProtocolConfig memory config) public {
         token = new OZVotingToken();
         governor = new GovernorVotesMock(address(token));
         ozVotingAdaptor = new OZVotingAdaptor(address(governor), address(token), config.owner);
         factory = new VestingEscrowFactory(
-            address(new VestingEscrow()),
-            address(token),
-            config.owner,
-            config.manager,
-            address(ozVotingAdaptor)
+            address(new VestingEscrow()), address(token), config.owner, config.manager, address(ozVotingAdaptor)
         );
 
         vm.deal(RANDOM_GUY, 100 ether);
@@ -68,13 +66,20 @@ contract TestUtil is Test {
         endTime = config.vestingStart + config.vestingDuration;
         cliffLength = config.cliffLength;
         isFullyRevokable = config.isFullyRevokable;
+        initialDelegateParams = config.initialDelegateParams;
 
         vm.startPrank(recipient);
         token.mint(recipient, amount);
         token.approve(address(factory), type(uint256).max);
         deployedVesting = VestingEscrow(
             factory.deployVestingContract(
-                amount, recipient, config.vestingDuration, startTime, cliffLength, isFullyRevokable
+                amount,
+                recipient,
+                config.vestingDuration,
+                startTime,
+                cliffLength,
+                isFullyRevokable,
+                initialDelegateParams
             )
         );
         vm.stopPrank();
