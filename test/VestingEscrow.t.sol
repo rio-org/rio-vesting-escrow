@@ -413,7 +413,6 @@ contract VestingEscrowTest is TestUtil {
     function testRecoverNonVestedToken() public {
         ERC20Token token2 = new ERC20Token();
 
-        vm.startPrank(recipient);
         token2.mint(recipient, amount);
         token2.transfer(address(deployedVesting), amount);
 
@@ -426,14 +425,11 @@ contract VestingEscrowTest is TestUtil {
 
         token2.mint(address(deployedVesting), amount);
 
-        vm.prank(recipient);
         deployedVesting.recoverERC20(address(token2), amount);
         assertEq(token2.balanceOf(recipient), amount);
     }
 
     function testRecoverLockedTokens() public {
-        vm.prank(recipient);
-
         deployedVesting.recoverERC20(address(token), amount);
         assertEq(token.balanceOf(recipient), 0);
     }
@@ -442,7 +438,6 @@ contract VestingEscrowTest is TestUtil {
         uint256 extra = 10 ** 17;
         token.mint(address(deployedVesting), extra);
 
-        vm.prank(recipient);
         deployedVesting.recoverERC20(address(token), amount);
         assertEq(token.balanceOf(recipient), extra);
     }
@@ -454,7 +449,7 @@ contract VestingEscrowTest is TestUtil {
         token.mint(address(deployedVesting), extra);
 
         vm.warp(endTime);
-        vm.startPrank(recipient);
+        vm.prank(recipient);
         deployedVesting.claim(RANDOM_GUY, claimAmount);
         deployedVesting.recoverERC20(address(token), amount);
 
@@ -464,7 +459,6 @@ contract VestingEscrowTest is TestUtil {
 
     function testRecoverLockedTokensAfterEnd() public {
         vm.warp(endTime + 1);
-        vm.prank(recipient);
         deployedVesting.recoverERC20(address(token), amount);
 
         assertEq(token.balanceOf(recipient), 0);
@@ -476,7 +470,7 @@ contract VestingEscrowTest is TestUtil {
         vm.warp(endTime + 1);
         uint256 claimAmount = 10 ** 17;
 
-        vm.startPrank(recipient);
+        vm.prank(recipient);
         deployedVesting.claim(RANDOM_GUY, claimAmount);
         deployedVesting.recoverERC20(address(token), amount);
 
@@ -507,7 +501,6 @@ contract VestingEscrowTest is TestUtil {
 
         assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
 
-        vm.prank(recipient);
         deployedVesting.recoverERC20(address(token), extra + 1);
         assertEq(token.balanceOf(recipient), extra);
     }
@@ -528,7 +521,6 @@ contract VestingEscrowTest is TestUtil {
 
         assertEq(token.balanceOf(factory.owner()), expectedAmount + ownerBalance);
 
-        vm.prank(recipient);
         deployedVesting.recoverERC20(address(token), extra + 1);
         assertEq(token.balanceOf(recipient), extra);
 
@@ -549,7 +541,6 @@ contract VestingEscrowTest is TestUtil {
 
         assertEq(token.balanceOf(factory.owner()), amount + ownerBalance);
 
-        vm.prank(recipient);
         deployedVesting.recoverERC20(address(token), amount);
         assertEq(token.balanceOf(recipient), extra);
     }

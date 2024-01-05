@@ -28,7 +28,6 @@ contract OZVotingAdaptorTest is TestUtil {
 
         uint256 ownerBalance = token2.balanceOf(_owner);
 
-        vm.prank(_owner);
         ozVotingAdaptor.recoverERC20(address(token2), amount);
 
         assertEq(token2.balanceOf(_owner), amount + ownerBalance);
@@ -42,7 +41,6 @@ contract OZVotingAdaptorTest is TestUtil {
         address _owner = ozVotingAdaptor.owner();
         uint256 ownerBalance = address(_owner).balance;
 
-        vm.prank(_owner);
         ozVotingAdaptor.recoverEther();
 
         assertEq(address(_owner).balance, ownerBalance + 1 ether);

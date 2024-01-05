@@ -75,7 +75,7 @@ contract OZVotingAdaptor is IVotingAdaptor, Ownable {
     /// @notice Recover any ERC20 to the owner.
     /// @param token_ The ERC20 token to recover.
     /// @param amount The amount to recover.
-    function recoverERC20(address token_, uint256 amount) external onlyOwner {
+    function recoverERC20(address token_, uint256 amount) external {
         if (amount > 0) {
             IERC20(token_).safeTransfer(owner(), amount);
             emit ERC20Recovered(token_, amount);
@@ -83,7 +83,7 @@ contract OZVotingAdaptor is IVotingAdaptor, Ownable {
     }
 
     /// @notice Recover any ETH to the owner.
-    function recoverEther() external onlyOwner {
+    function recoverEther() external {
         uint256 amount = address(this).balance;
         if (amount > 0) {
             payable(owner()).sendValue(amount);

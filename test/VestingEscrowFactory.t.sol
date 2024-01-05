@@ -28,7 +28,6 @@ contract VestingEscrowFactoryTest is TestUtil {
 
         uint256 ownerBalance = token2.balanceOf(_owner);
 
-        vm.prank(_owner);
         factory.recoverERC20(address(token2), amount);
 
         assertEq(token2.balanceOf(_owner), amount + ownerBalance);
@@ -42,7 +41,6 @@ contract VestingEscrowFactoryTest is TestUtil {
         address _owner = factory.owner();
         uint256 ownerBalance = address(_owner).balance;
 
-        vm.prank(_owner);
         factory.recoverEther();
 
         assertEq(address(_owner).balance, ownerBalance + 1 ether);
