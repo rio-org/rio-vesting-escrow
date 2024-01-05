@@ -279,14 +279,4 @@ contract VestingEscrow is IVestingEscrow, Clone {
         }
         return Math.min(_totalLocked * (time - _startTime) / (endTime() - _startTime), _totalLocked);
     }
-
-    /// @dev Reads an immutable arg with type bool.
-    /// @param argOffset Offset of the argument in the immutable arguments block.
-    function _getArgBool(uint256 argOffset) internal pure returns (bool arg) {
-        uint256 offset = _getImmutableArgsOffset();
-        /// @solidity memory-safe-assembly
-        assembly {
-            arg := shr(248, calldataload(add(offset, argOffset)))
-        }
-    }
 }
