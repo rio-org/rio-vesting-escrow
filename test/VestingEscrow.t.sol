@@ -5,6 +5,8 @@ import {TestUtil} from 'test/lib/TestUtil.sol';
 import {IVestingEscrow} from 'src/interfaces/IVestingEscrow.sol';
 import {OZVotingAdaptor} from 'src/adaptors/OZVotingAdaptor.sol';
 import {ERC20NoReturnToken} from 'test/lib/ERC20NoReturnToken.sol';
+import {OnlyDelegateCall} from 'src/utils/OnlyDelegateCall.sol';
+import {SelfDestructAttacker} from 'test/lib/SelfDestructAttacker.sol';
 import {ERC20Token} from 'test/lib/ERC20Token.sol';
 
 contract VestingEscrowTest is TestUtil {
@@ -792,5 +794,26 @@ contract VestingEscrowTest is TestUtil {
 
         assertEq(token.balanceOf(recipient), claimAmount);
         assertEq(token.balanceOf(factory.owner()), amount - claimAmount + ownerBalance);
+    }
+
+    function testSelfDestructViaDelegateReverts() public {
+        SelfDestructAttacker attacker = new SelfDestructAttacker();
+
+        vm.expectRevert(abi.encodeWithSelector(OnlyDelegateCall.CALL_NOT_DELEGATE_CALL.selector));
+        attacker.attack(vestingEscrowImpl, IVestingEscrow.delegate.selector);
+    }
+
+    function testSelfDestructViaVoteReverts() public {
+        SelfDestructAttacker attacker = new SelfDestructAttacker();
+
+        vm.expectRevert(abi.encodeWithSelector(OnlyDelegateCall.CALL_NOT_DELEGATE_CALL.selector));
+        attacker.attack(vestingEscrowImpl, IVestingEscrow.vote.selector);
+    }
+
+    function testSelfDestructViaVoteWithReasonReverts() public {
+        SelfDestructAttacker attacker = new SelfDestructAttacker();
+
+        vm.expectRevert(abi.encodeWithSelector(OnlyDelegateCall.CALL_NOT_DELEGATE_CALL.selector));
+        attacker.attack(vestingEscrowImpl, IVestingEscrow.voteWithReason.selector);
     }
 }

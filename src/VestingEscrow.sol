@@ -9,8 +9,9 @@ import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IVestingEscrowFactory} from 'src/interfaces/IVestingEscrowFactory.sol';
 import {IVestingEscrow} from 'src/interfaces/IVestingEscrow.sol';
 import {IVotingAdaptor} from 'src/interfaces/IVotingAdaptor.sol';
+import {OnlyDelegateCall} from 'src/utils/OnlyDelegateCall.sol';
 
-contract VestingEscrow is IVestingEscrow, Clone {
+contract VestingEscrow is IVestingEscrow, OnlyDelegateCall, Clone {
     using SafeERC20 for IERC20;
     using Address for address;
     using Address for address payable;
@@ -149,16 +150,17 @@ contract VestingEscrow is IVestingEscrow, Clone {
         return _delegate(params);
     }
 
+    // forgefmt: disable-next-item
     /// @notice Participate in a governance vote using all available tokens on the contract's balance.
     /// @param params The ABI-encoded data for call. Can be obtained from VotingAdaptor.encodeVoteCalldata.
-    function vote(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
+    function vote(bytes calldata params) external onlyRecipient onlyDelegateCall whenVotingAdaptorIsSet returns (bytes memory) {
         return _votingAdaptor().functionDelegateCall(abi.encodeCall(IVotingAdaptor.vote, (params)));
     }
 
     // forgefmt: disable-next-item
     /// @notice Participate in a governance vote with a reason using all available tokens on the contract's balance.
     /// @param params The ABI-encoded data for call. Can be obtained from VotingAdaptor.encodeVoteWithReasonCalldata.
-    function voteWithReason(bytes calldata params) external onlyRecipient whenVotingAdaptorIsSet returns (bytes memory) {
+    function voteWithReason(bytes calldata params) external onlyRecipient onlyDelegateCall whenVotingAdaptorIsSet returns (bytes memory) {
         return _votingAdaptor().functionDelegateCall(abi.encodeCall(IVotingAdaptor.voteWithReason, (params)));
     }
 
@@ -265,7 +267,7 @@ contract VestingEscrow is IVestingEscrow, Clone {
 
     /// @notice Delegate voting power of all available tokens.
     /// @param params The ABI-encoded delegate params.
-    function _delegate(bytes calldata params) internal whenVotingAdaptorIsSet returns (bytes memory) {
+    function _delegate(bytes calldata params) internal onlyDelegateCall whenVotingAdaptorIsSet returns (bytes memory) {
         return _votingAdaptor().functionDelegateCall(abi.encodeCall(IVotingAdaptor.delegate, params));
     }
 
