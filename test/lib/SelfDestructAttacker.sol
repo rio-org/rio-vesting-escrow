@@ -2,10 +2,10 @@
 pragma solidity 0.8.23;
 
 contract SelfDestructAttacker {
-    function attack(address impl, bytes4 targetSelector) external {
+    function attack(address impl, bytes memory cdata) external {
         (bool success, bytes memory returnData) = impl.call(
             abi.encodePacked(
-                targetSelector,
+                cdata,
                 bytes32(0),
                 address(this),
                 address(this),
@@ -13,8 +13,8 @@ contract SelfDestructAttacker {
                 uint40(block.timestamp),
                 uint40(block.timestamp + 1),
                 uint40(0),
-                uint40(1),
-                uint16(82)
+                uint256(1),
+                uint16(109)
             )
         );
         if (!success) {
@@ -34,6 +34,10 @@ contract SelfDestructAttacker {
 
     function recipient() external view returns (address) {
         return address(this);
+    }
+
+    function balanceOf(address) external pure returns (uint256) {
+        return 1;
     }
 
     function delegate(bytes calldata) external {

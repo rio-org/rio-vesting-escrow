@@ -796,24 +796,31 @@ contract VestingEscrowTest is TestUtil {
         assertEq(token.balanceOf(factory.owner()), amount - claimAmount + ownerBalance);
     }
 
+    function testSelfDestructViaInitializeReverts() public {
+        SelfDestructAttacker attacker = new SelfDestructAttacker();
+
+        vm.expectRevert(abi.encodeWithSelector(OnlyDelegateCall.CALL_NOT_DELEGATE_CALL.selector));
+        attacker.attack(vestingEscrowImpl, abi.encodeCall(IVestingEscrow.initialize, (false, new bytes(1))));
+    }
+
     function testSelfDestructViaDelegateReverts() public {
         SelfDestructAttacker attacker = new SelfDestructAttacker();
 
         vm.expectRevert(abi.encodeWithSelector(OnlyDelegateCall.CALL_NOT_DELEGATE_CALL.selector));
-        attacker.attack(vestingEscrowImpl, IVestingEscrow.delegate.selector);
+        attacker.attack(vestingEscrowImpl, abi.encodeCall(IVestingEscrow.delegate, (new bytes(0))));
     }
 
     function testSelfDestructViaVoteReverts() public {
         SelfDestructAttacker attacker = new SelfDestructAttacker();
 
         vm.expectRevert(abi.encodeWithSelector(OnlyDelegateCall.CALL_NOT_DELEGATE_CALL.selector));
-        attacker.attack(vestingEscrowImpl, IVestingEscrow.vote.selector);
+        attacker.attack(vestingEscrowImpl, abi.encodeCall(IVestingEscrow.vote, (new bytes(0))));
     }
 
     function testSelfDestructViaVoteWithReasonReverts() public {
         SelfDestructAttacker attacker = new SelfDestructAttacker();
 
         vm.expectRevert(abi.encodeWithSelector(OnlyDelegateCall.CALL_NOT_DELEGATE_CALL.selector));
-        attacker.attack(vestingEscrowImpl, IVestingEscrow.voteWithReason.selector);
+        attacker.attack(vestingEscrowImpl, abi.encodeCall(IVestingEscrow.voteWithReason, (new bytes(0))));
     }
 }
