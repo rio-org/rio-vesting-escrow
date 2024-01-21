@@ -35,6 +35,8 @@ contract TestUtil is Test {
     VestingEscrowFactory public factory;
     OZVotingAdaptor public ozVotingAdaptor;
 
+    address public vestingEscrowImpl;
+
     GovernorVotesMock public governor;
     OZVotingToken public token;
 
@@ -52,8 +54,10 @@ contract TestUtil is Test {
         token = new OZVotingToken();
         governor = new GovernorVotesMock(address(token));
         ozVotingAdaptor = new OZVotingAdaptor(address(governor), address(token), config.owner);
+
+        vestingEscrowImpl = address(new VestingEscrow());
         factory = new VestingEscrowFactory(
-            address(new VestingEscrow()), address(token), config.owner, config.manager, address(ozVotingAdaptor)
+            vestingEscrowImpl, address(token), config.owner, config.manager, address(ozVotingAdaptor)
         );
 
         vm.deal(RANDOM_GUY, 100 ether);

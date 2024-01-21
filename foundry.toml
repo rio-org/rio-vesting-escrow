@@ -2,6 +2,7 @@
 auto_detect_solc = true
 bytecode_hash = 'none'
 optimizer_runs = 10
+ignored_error_codes = [5159]
 
 [fmt]
 quote_style = 'single'

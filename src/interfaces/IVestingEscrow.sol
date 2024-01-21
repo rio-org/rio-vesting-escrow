@@ -63,4 +63,16 @@ interface IVestingEscrow {
     /// @param isFullyRevokable Whether the tokens are fully revokable.
     /// @param initialDelegateParams The optional initial delegate information (skipped if empty bytes).
     function initialize(bool isFullyRevokable, bytes calldata initialDelegateParams) external;
+
+    /// @notice Delegate voting power of all available tokens.
+    /// @param params The ABI-encoded delegate params.
+    function delegate(bytes calldata params) external returns (bytes memory);
+
+    /// @notice Participate in a governance vote using all available tokens on the contract's balance.
+    /// @param params The ABI-encoded data for call. Can be obtained from VotingAdaptor.encodeVoteCalldata.
+    function vote(bytes calldata params) external returns (bytes memory);
+
+    /// @notice Participate in a governance vote with a reason using all available tokens on the contract's balance.
+    /// @param params The ABI-encoded data for call. Can be obtained from VotingAdaptor.encodeVoteWithReasonCalldata.
+    function voteWithReason(bytes calldata params) external returns (bytes memory);
 }
