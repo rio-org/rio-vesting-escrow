@@ -27,17 +27,15 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
     /// @notice The account that will manage the vesting contracts.
     address public manager;
 
-    constructor(address _vestingEscrowImpl, address _token, address _owner, address _manager, address _votingAdaptor) {
+    // forgefmt: disable-next-item
+    constructor(address _vestingEscrowImpl, address _token, address _owner, address _manager, address _votingAdaptor) Ownable(_owner) {
         if (_vestingEscrowImpl == address(0)) revert INVALID_VESTING_ESCROW_IMPL();
         if (_token == address(0)) revert INVALID_TOKEN();
-        if (_owner == address(0)) revert INVALID_OWNER();
 
         vestingEscrowImpl = _vestingEscrowImpl;
         token = _token;
         manager = _manager;
         votingAdaptor = _votingAdaptor;
-
-        _transferOwnership(_owner);
     }
 
     /// @notice Deploy and fund a new vesting contract.
