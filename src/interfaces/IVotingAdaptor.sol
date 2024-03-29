@@ -2,9 +2,6 @@
 pragma solidity 0.8.23;
 
 interface IVotingAdaptor {
-    /// @notice Thrown when the owner is the zero address.
-    error INVALID_OWNER();
-
     /// @notice Thrown when the governor is the zero address.
     error INVALID_GOVERNOR();
 

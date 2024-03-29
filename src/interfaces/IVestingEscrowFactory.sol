@@ -20,9 +20,6 @@ interface IVestingEscrowFactory {
     /// @notice Thrown when the token is the zero address
     error INVALID_TOKEN();
 
-    /// @notice Thrown when the owner is the zero address
-    error INVALID_OWNER();
-
     /// @notice Thrown when a transfer fails.
     error TRANSFER_FAILED();
 

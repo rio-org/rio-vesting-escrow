@@ -19,15 +19,12 @@ contract OZVotingAdaptor is IVotingAdaptor, Ownable {
     /// @notice The voting token contract address.
     address public immutable votingToken;
 
-    constructor(address _governor, address _votingToken, address _owner) {
-        if (_owner == address(0)) revert INVALID_OWNER();
+    constructor(address _governor, address _votingToken, address _owner) Ownable(_owner) {
         if (_governor == address(0)) revert INVALID_GOVERNOR();
         if (_votingToken == address(0)) revert INVALID_VOTING_TOKEN();
 
         governor = _governor;
         votingToken = _votingToken;
-
-        _transferOwnership(_owner);
     }
 
     /// @notice Encode OZ delegate calldata for use in VestingEscrow.
