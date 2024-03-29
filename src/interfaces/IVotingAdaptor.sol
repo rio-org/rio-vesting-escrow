@@ -2,6 +2,9 @@
 pragma solidity 0.8.23;
 
 interface IVotingAdaptor {
+    /// @notice Thrown when a function is not implemented.
+    error NOT_IMPLEMENTED();
+
     /// @notice Thrown when the governor is the zero address.
     error INVALID_GOVERNOR();
 
