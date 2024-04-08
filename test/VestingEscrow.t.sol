@@ -7,11 +7,12 @@ import {OZVotingAdaptor} from 'src/adaptors/OZVotingAdaptor.sol';
 import {ERC20NoReturnToken} from 'test/lib/ERC20NoReturnToken.sol';
 import {OnlyDelegateCall} from 'src/utils/OnlyDelegateCall.sol';
 import {SelfDestructAttacker} from 'test/lib/SelfDestructAttacker.sol';
+import {IVestingEscrowFactory} from 'src/interfaces/IVestingEscrowFactory.sol';
 import {ERC20Token} from 'test/lib/ERC20Token.sol';
 
 contract VestingEscrowTest is TestUtil {
     function setUp() public {
-        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2)}));
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: false}));
         deployVestingEscrow(
             VestingEscrowConfig({
                 amount: 1 ether,
@@ -33,12 +34,43 @@ contract VestingEscrowTest is TestUtil {
         deployedVesting.initialize(true, new bytes(0));
     }
 
+    function testInitializeTokensLockedNotFullyRevokeableReverts() public {
+        vm.mockCall(
+            address(factory), abi.encodeWithSelector(IVestingEscrowFactory.areTokensLocked.selector), abi.encode(true)
+        );
+
+        vm.prank(address(factory));
+        vm.expectRevert(IVestingEscrow.FULL_REVOCATION_REQUIRED_WHEN_TOKENS_LOCKED.selector);
+        deployedVesting.initialize(false, new bytes(0));
+    }
+
     function testClaimNonRecipientReverts() public {
         vm.warp(endTime);
         vm.prank(RANDOM_GUY);
 
         vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_RECIPIENT.selector, RANDOM_GUY));
         deployedVesting.claim(RANDOM_GUY, type(uint256).max);
+    }
+
+    function testClaimWhenTokensLockedReverts() public {
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: true}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        vm.warp(endTime);
+        vm.prank(recipient);
+        vm.expectRevert(IVestingEscrow.TOKENS_LOCKED.selector);
+
+        deployedVesting.claim(recipient, type(uint256).max);
     }
 
     function testClaimFull() public {
@@ -135,6 +167,31 @@ contract VestingEscrowTest is TestUtil {
         }
 
         assertEq(token.balanceOf(recipient), recipientBalance);
+    }
+
+    function testClaimAfterTokenUnlock() public {
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: true}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        vm.prank(factory.owner());
+        factory.unlockTokens();
+
+        vm.warp(endTime + 1);
+        vm.prank(recipient);
+
+        deployedVesting.claim(recipient, type(uint256).max);
+
+        assertEq(token.balanceOf(recipient), amount);
     }
 
     function testInitialDelegate() public {
@@ -700,9 +757,47 @@ contract VestingEscrowTest is TestUtil {
         deployedVesting.revokeUnvested();
     }
 
+    function testRevokeUnvestedWhileTokensLockedReverts() public {
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: true}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        vm.prank(factory.owner());
+        vm.expectRevert(IVestingEscrow.TOKENS_LOCKED.selector);
+        deployedVesting.revokeUnvested();
+    }
+
     function testNonOwnerPermanentlyDisableFullRevocationReverts() public {
         vm.prank(RANDOM_GUY);
         vm.expectRevert(abi.encodeWithSelector(IVestingEscrow.NOT_OWNER.selector, RANDOM_GUY));
+        deployedVesting.permanentlyDisableFullRevocation();
+    }
+
+    function testTokensLockedPermanentlyDisableFullRevocationReverts() public {
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: true}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        vm.prank(factory.owner());
+        vm.expectRevert(IVestingEscrow.TOKENS_LOCKED.selector);
         deployedVesting.permanentlyDisableFullRevocation();
     }
 
@@ -794,6 +889,28 @@ contract VestingEscrowTest is TestUtil {
 
         assertEq(token.balanceOf(recipient), claimAmount);
         assertEq(token.balanceOf(factory.owner()), amount - claimAmount + ownerBalance);
+    }
+
+    function testRevokeUnvestedAfterTokensUnlocked() public {
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: true}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        vm.prank(factory.owner());
+        factory.unlockTokens();
+
+        vm.prank(factory.owner());
+        deployedVesting.revokeUnvested();
+        assertEq(token.balanceOf(factory.owner()), amount);
     }
 
     function testSelfDestructViaInitializeReverts() public {

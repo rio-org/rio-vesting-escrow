@@ -87,6 +87,12 @@ contract VestingEscrow is IVestingEscrow, OnlyDelegateCall, Clone {
         _;
     }
 
+    /// @notice Throws if the tokens are locked.
+    modifier whenTokensUnlocked() {
+        _checkTokensUnlocked();
+        _;
+    }
+
     /// @notice Initializes the contract.
     /// @param _isFullyRevokable Whether the tokens are fully revokable.
     /// @param _initialDelegateParams The optional initial delegate information (skipped if empty bytes).
@@ -98,6 +104,7 @@ contract VestingEscrow is IVestingEscrow, OnlyDelegateCall, Clone {
 
         if (msg.sender != _factory) revert NOT_FACTORY(msg.sender);
         if (_token.balanceOf(address(this)) < _totalLocked) revert INSUFFICIENT_BALANCE();
+        if (!_isFullyRevokable && _areTokensLocked()) revert FULL_REVOCATION_REQUIRED_WHEN_TOKENS_LOCKED();
 
         disabledAt = _endTime; // Set to maximum time
         isFullyRevokable = _isFullyRevokable;
@@ -134,7 +141,7 @@ contract VestingEscrow is IVestingEscrow, OnlyDelegateCall, Clone {
     /// @notice Claim tokens which have vested.
     /// @param beneficiary Address to transfer claimed tokens to.
     /// @param amount Amount of tokens to claim.
-    function claim(address beneficiary, uint256 amount) external onlyRecipient returns (uint256) {
+    function claim(address beneficiary, uint256 amount) external onlyRecipient whenTokensUnlocked returns (uint256) {
         uint256 claimable = Math.min(unclaimed(), amount);
         totalClaimed += claimable;
 
@@ -165,7 +172,7 @@ contract VestingEscrow is IVestingEscrow, OnlyDelegateCall, Clone {
     }
 
     /// @notice Disable further flow of tokens and revoke the unvested part to owner.
-    function revokeUnvested() external onlyOwnerOrManager {
+    function revokeUnvested() external onlyOwnerOrManager whenTokensUnlocked {
         uint256 revokable = locked();
         if (revokable == 0) revert NOTHING_TO_REVOKE();
 
@@ -191,7 +198,7 @@ contract VestingEscrow is IVestingEscrow, OnlyDelegateCall, Clone {
     }
 
     /// @notice Permanently disable full token revocation.
-    function permanentlyDisableFullRevocation() external onlyOwner {
+    function permanentlyDisableFullRevocation() external onlyOwner whenTokensUnlocked {
         if (!isFullyRevokable) revert NOT_FULLY_REVOKABLE();
 
         isFullyRevokable = false;
@@ -237,6 +244,11 @@ contract VestingEscrow is IVestingEscrow, OnlyDelegateCall, Clone {
         return factory().votingAdaptor();
     }
 
+    /// @dev Returns whether all tokens are locked, irrespective of vesting.
+    function _areTokensLocked() internal view returns (bool) {
+        return factory().areTokensLocked();
+    }
+
     /// @dev Throws if called by any account other than the owner.
     function _checkOwner() internal view {
         if (msg.sender != _owner()) {
@@ -262,6 +274,13 @@ contract VestingEscrow is IVestingEscrow, OnlyDelegateCall, Clone {
     function _checkVotingAdaptorIsSet() internal view {
         if (_votingAdaptor() == address(0)) {
             revert VOTING_ADAPTOR_NOT_SET();
+        }
+    }
+
+    /// @dev Throws if the tokens are locked.
+    function _checkTokensUnlocked() internal view {
+        if (_areTokensLocked()) {
+            revert TOKENS_LOCKED();
         }
     }
 

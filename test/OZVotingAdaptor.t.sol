@@ -6,7 +6,7 @@ import {ERC20Token} from 'test/lib/ERC20Token.sol';
 
 contract OZVotingAdaptorTest is TestUtil {
     function setUp() public {
-        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2)}));
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: false}));
         deployVestingEscrow(
             VestingEscrowConfig({
                 amount: 1 ether,

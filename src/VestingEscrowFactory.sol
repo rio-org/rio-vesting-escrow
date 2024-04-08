@@ -27,8 +27,11 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
     /// @notice The account that will manage the vesting contracts.
     address public manager;
 
+    /// @notice Whether all tokens are locked, irrespective of vesting.
+    bool public areTokensLocked;
+
     // forgefmt: disable-next-item
-    constructor(address _vestingEscrowImpl, address _token, address _owner, address _manager, address _votingAdaptor) Ownable(_owner) {
+    constructor(address _vestingEscrowImpl, address _token, address _owner, address _manager, address _votingAdaptor, bool _areTokensLocked) Ownable(_owner) {
         if (_vestingEscrowImpl == address(0)) revert INVALID_VESTING_ESCROW_IMPL();
         if (_token == address(0)) revert INVALID_TOKEN();
 
@@ -36,6 +39,7 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
         token = _token;
         manager = _manager;
         votingAdaptor = _votingAdaptor;
+        areTokensLocked = _areTokensLocked;
     }
 
     /// @notice Deploy and fund a new vesting contract.
@@ -101,6 +105,14 @@ contract VestingEscrowFactory is IVestingEscrowFactory, Ownable2Step {
     function changeManager(address _manager) external onlyOwner {
         manager = _manager;
         emit ManagerChanged(_manager);
+    }
+
+    /// @notice Unlock tokens in all vesting contracts.
+    function unlockTokens() external onlyOwner {
+        if (!areTokensLocked) revert TOKENS_ALREADY_UNLOCKED();
+
+        areTokensLocked = false;
+        emit TokensUnlocked();
     }
 
     /// @notice The address of the current owner.

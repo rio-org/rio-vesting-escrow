@@ -6,7 +6,7 @@ import {ERC20Token} from 'test/lib/ERC20Token.sol';
 
 contract VestingEscrowFactoryTest is TestUtil {
     function setUp() public {
-        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2)}));
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: false}));
         deployVestingEscrow(
             VestingEscrowConfig({
                 amount: 1 ether,
@@ -66,5 +66,66 @@ contract VestingEscrowFactoryTest is TestUtil {
         vm.prank(RANDOM_GUY);
         vm.expectRevert();
         factory.changeManager(address(1));
+    }
+
+    function testUnlockTokensNonOwnerReverts() public {
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: true}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        vm.prank(RANDOM_GUY);
+        vm.expectRevert();
+        factory.unlockTokens();
+    }
+
+    function testUnlockTokensAlreadyUnlockedReverts() public {
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: true}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        vm.prank(factory.owner());
+        factory.unlockTokens();
+
+        vm.prank(factory.owner());
+        vm.expectRevert();
+        factory.unlockTokens();
+    }
+
+    function testUnlockTokens() public {
+        setUpProtocol(ProtocolConfig({owner: address(1), manager: address(2), areTokensLocked: true}));
+        deployVestingEscrow(
+            VestingEscrowConfig({
+                amount: 1 ether,
+                recipient: address(this),
+                vestingDuration: 365 days,
+                vestingStart: uint40(block.timestamp),
+                cliffLength: 90 days,
+                isFullyRevokable: true,
+                initialDelegateParams: new bytes(0)
+            })
+        );
+
+        vm.prank(factory.owner());
+        factory.unlockTokens();
+
+        assertEq(factory.areTokensLocked(), false);
     }
 }

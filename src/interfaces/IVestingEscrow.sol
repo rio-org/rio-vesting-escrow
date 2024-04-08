@@ -23,11 +23,17 @@ interface IVestingEscrow {
     /// @notice Thrown when tokens are already fully revoked.
     error ALREADY_FULLY_REVOKED();
 
+    /// @notice Thrown when attempting to disable full revocation while tokens are locked.
+    error FULL_REVOCATION_REQUIRED_WHEN_TOKENS_LOCKED();
+
     /// @notice Thrown when there are no tokens to revoke.
     error NOTHING_TO_REVOKE();
 
     /// @notice Thrown when the voting adaptor is not set.
     error VOTING_ADAPTOR_NOT_SET();
+
+    /// @notice Thrown when the escrowed tokens are locked.
+    error TOKENS_LOCKED();
 
     /// @notice Emitted when the vesting escrow is initialized.
     event VestingEscrowInitialized(

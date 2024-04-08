@@ -23,6 +23,9 @@ interface IVestingEscrowFactory {
     /// @notice Thrown when a transfer fails.
     error TRANSFER_FAILED();
 
+    /// @notice Thrown when the tokens are already unlocked.
+    error TOKENS_ALREADY_UNLOCKED();
+
     /// @notice Emitted when a vesting escrow is created.
     event VestingEscrowCreated(address indexed creator, address indexed recipient, address escrow);
 
@@ -38,7 +41,11 @@ interface IVestingEscrowFactory {
     /// @notice Emitted when the manager is changed.
     event ManagerChanged(address manager);
 
+    /// @notice Emitted when the tokens are unlocked.
+    event TokensUnlocked();
+
     function votingAdaptor() external view returns (address);
     function owner() external view returns (address);
     function manager() external view returns (address);
+    function areTokensLocked() external view returns (bool);
 }

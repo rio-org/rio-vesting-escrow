@@ -12,6 +12,7 @@ contract TestUtil is Test {
     struct ProtocolConfig {
         address owner;
         address manager;
+        bool areTokensLocked;
     }
 
     struct VestingEscrowConfig {
@@ -57,7 +58,12 @@ contract TestUtil is Test {
 
         vestingEscrowImpl = address(new VestingEscrow());
         factory = new VestingEscrowFactory(
-            vestingEscrowImpl, address(token), config.owner, config.manager, address(ozVotingAdaptor)
+            vestingEscrowImpl,
+            address(token),
+            config.owner,
+            config.manager,
+            address(ozVotingAdaptor),
+            config.areTokensLocked
         );
 
         vm.deal(RANDOM_GUY, 100 ether);

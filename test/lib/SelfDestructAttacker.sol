@@ -28,6 +28,10 @@ contract SelfDestructAttacker {
         return address(this);
     }
 
+    function areTokensLocked() external pure returns (bool) {
+        return false;
+    }
+
     function factory() external view returns (address) {
         return address(this);
     }
